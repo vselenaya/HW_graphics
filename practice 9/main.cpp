@@ -188,7 +188,7 @@ void main()
         float mu = data.r;
         float sigma = data.g - mu * mu;
         float z = shadow_pos.z;
-        shadow_factor = (z < mu + 2.0 * s) ? 1.0 : sigma / (sigma + (z - mu) * (z - mu));  //  не забываем добавить добавку 2.0 * s
+        shadow_factor = (z < mu) ? 1.0 : sigma / (sigma + (z - mu) * (z - mu));  //  пока ещё никакую добавку 2.0 * s не используем
     }
     vec3 albedo = vec3(1.0, 1.0, 1.0);
 
@@ -236,7 +236,7 @@ void main()
         float mu = data.r;
         float sigma = data.g - mu * mu;
         float z = shadow_pos.z;
-        shadow_factor = (z < mu + 2.0 * s) ? 1.0 : sigma / (sigma + (z - mu) * (z - mu));  //  shadow_bias (у меня это 2.0 * s) уже добавли
+        shadow_factor = (z < mu + 2.0 * s) ? 1.0 : sigma / (sigma + (z - mu) * (z - mu));  //  shadow_bias (у меня это 2.0 * s) добавляем (то же, что вычесть из mu)
         
         float delta = 0.125;  // меняем диапозоны
         if (shadow_factor < delta)
@@ -319,7 +319,6 @@ void main()
     out_color = vec4(color, 1.0);
 }
 )";
-
 
 
 
@@ -573,12 +572,14 @@ int main() try
     GLuint shadow_map;
     glGenTextures(1, &shadow_map);
     glBindTexture(GL_TEXTURE_2D, shadow_map);
+    /* было изначально (до 4 задания)
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    */
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    /* было изначально
+    /* было изначально (до 3 задания)
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, shadow_map_resolution, shadow_map_resolution, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 
     GLuint shadow_fbo;
@@ -593,6 +594,10 @@ int main() try
 
 
     // ====== МОЙ КОД ==========
+
+    // === Задание 4 ===
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);  // для variance shadow maps обязательно дожна быть какая-то фильтрация (иначе, как говорилось на лекции, в shadow map запишется z=mu и sigma=0 -> в н-ве Чебышева 0/0)
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);  // (поэтому заменяем GL_NEAREST на линеную)
 
     // === Задание 3 ===
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RG32F, shadow_map_resolution, shadow_map_resolution, 0, GL_RGBA, GL_FLOAT, nullptr);  // устанавливаем GL_RG32F
