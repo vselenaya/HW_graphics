@@ -643,7 +643,7 @@ in vec3 position;
 
 vec3 get_from_texture(vec3 p) {
     vec3 tex_coords = (p - bbox_min) / (bbox_max - bbox_min);
-    vec3 texture_color = texture(texture3D, tex_coords).rgb;
+    vec3 texture_color = textureLod(texture3D, tex_coords, 0).rgb;  // грузим только из 0-го MipMap уровня (= то же, что обычная функция texture, когда mipmap нет вообще) - это позволяет избежать артефактов на границе bounding box (проявляются при вращении облака) из-за слишком болшой разницы в текстурных координатах у границы
     return texture_color;
 }
 
@@ -680,6 +680,7 @@ void main()
         vec2 light_t = intersect_bbox(p, light_direction);
         float light_tmin = light_t.x;
         float light_tmax = light_t.y;
+        light_tmin = max(light_tmin, 0.0);  // в прошлых заданиях забыл тоже обрезать по нулю light_tmin... (аналогично камере, нас не интересует кусок облака за точкой - нам нужен только кусок к этому облаку)
         float light_dt = (light_tmax - light_tmin) / float(light_steps); 
         vec3 light_optical_depth = vec3(0.0);  // Векторная оптическая глубина из текущей точки p в направлении источника света
         for (int j = 0; j < light_steps; j ++) {  // ВНУТРЕННИЙ ЦИКЛ
