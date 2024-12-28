@@ -196,21 +196,23 @@ float median(vec3 v) {
 
 void main()
 {
+    vec3 text_color = vec3(0.0, 0.0, 0.0);  // цвет текста
+    vec3 outline_color = vec3(1.0, 1.0, 1.0);  // цвет обводки
+    float eps = 1;  // толщина обводки: при sdf > 0 рисуем букву (пиксели цвета text_color)
+                    //                  при sdf \in [-eps, 0] рисуем обводку (пиксели цвета outline_color)
+                    //                  при sdf < -eps ничего (прозрачные пиксели)
+
     float texture_value = median(texture(sdf_texture, frag_texcoord).rgb); 
+    float sdf_value = sdf_scale * (texture_value - 0.5);  // считываем значение из тектуры и получаем по нему реально значение sdf
 
-    float sdf_value = sdf_scale * (texture_value - 0.5);
-    float val = length(vec2(dFdx(sdf_value), dFdy(sdf_value))) / sqrt(2.0);
-    float alpha = smoothstep(-val, val, sdf_value); 
-    vec3 text_color = vec3(0.0, 0.0, 0.0);
-
-    float outline_thickness = 5 * val;  // Толщина обводки
-    vec3 outline_color = vec3(1.0, 1.0, 1.0);
-    float outline_alpha = smoothstep(-val, val, sdf_value+outline_thickness);
-
-    if (-outline_thickness < sdf_value && sdf_value < 0.0)
-        out_color = vec4(outline_color, outline_alpha); 
-    else
-        out_color = vec4(text_color, alpha); 
+    float val = length(vec2(dFdx(sdf_value), dFdy(sdf_value))) / sqrt(2.0);  // хорошо подобранное значение, чтобы не было алиасинг
+    // smoothstep(a, b, f) даёт 0, если f < a; 1, если f > b; и число от 0 до 1 (гадко интерполирует), если f от a до b
+    float mixed = smoothstep(-val, val, sdf_value);  // сначала получаем коэффициент в окрестности (толщины +-val) значения sdf_value = 0 (это граница
+                                                     // между буквой и обводкой -> с этим коэффициентом будем смешивать цвета, чтобы был гладкий переход от буквы к обводке)
+    float alpha = smoothstep(-val, val, sdf_value+eps);  // теперь сдвигаем весь sdf на eps и снова получаем коэффициент для той же окрестности +-val ->
+                                                         // -> этот коэффициент уже соответсвует sdf_value = -eps и используется нами гладкой границы обводки (этот коэффициент = переход от обводки к прозрачным пикселям снаружи)
+    
+    out_color = vec4(mix(outline_color, text_color, mixed), alpha); 
 }
 )";
 
